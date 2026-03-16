@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en" x-data="irishApp()" x-init="init()">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Irish Proverbs</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Irish+Grover&display=swap" rel="stylesheet">
+
+</head>
+
+<body class="bg-irish-cream font-roboto text-irish-dark">
+
+<!-- NAVBAR -->
+<header class="fixed top-0 left-0 w-full bg-irish-dark text-white shadow-lg z-50">
+<div class="max-w-7xl mx-auto flex justify-between items-center p-4">
+
+<h1 class="font-irish-grover text-3xl cursor-pointer hover:text-irish-gold transition"
+@click="showPage('home')">
+🍀 Irish Proverbs
+</h1>
+
+<nav class="flex space-x-8 text-lg">
+<button @click="showPage('home')" 
+:class="currentPage==='home'?'text-irish-gold':''"
+class="hover:text-irish-gold transition">
+Home
+</button>
+
+<button @click="showPage('learn')" 
+:class="currentPage==='learn'?'text-irish-gold':''"
+class="hover:text-irish-gold transition">
+Learn
+</button>
+</nav>
+
+</div>
+</header>
+
+
+<main class="pt-28 max-w-7xl mx-auto px-6">
+
+<!-- HOME -->
+<section x-show="currentPage==='home'" x-transition>
+
+<h2 class="text-4xl font-bold mb-6">Discover Irish Wisdom</h2>
+
+<select x-model="selectedMood"
+class="mb-8 px-4 py-2 border rounded-lg shadow focus:ring-2 focus:ring-irish-gold">
+
+<option value="">All Moods</option>
+
+<template x-for="m in moods" :key="m">
+<option :value="m" x-text="m"></option>
+</template>
+
+</select>
+
+<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+<template x-for="p in filteredProverbs()" :key="p.english">
+
+<div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl hover:-translate-y-1 transition border-l-4 border-irish-gold relative">
+
+<h3 class="text-lg font-semibold mb-2 text-irish-dark"
+x-text="p.irish"></h3>
+
+<p class="text-gray-700"
+x-text="p.english"></p>
+
+<button
+class="absolute top-3 right-3 text-xl"
+@click="toggleFavorite(p)"
+:x-text="isFavorite(p)?'❤️':'🤍'">
+</button>
+
+</div>
+
+</template>
+
+</div>
+
+</section>
+
+
+<!-- LEARN -->
+<section x-show="currentPage==='learn'" x-transition>
+
+<h2 class="text-4xl font-bold text-center mb-10">
+Learn & Quiz Yourself 🍀
+</h2>
+
+
+<template x-if="currentQuestion">
+
+<div class="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-xl border">
+
+<p class="text-center text-gray-500">
+Translate this proverb
+</p>
+
+<h3 class="text-2xl font-bold text-center mt-3 mb-6"
+x-text="currentQuestion.irish"></h3>
+
+
+<div class="grid sm:grid-cols-2 gap-4">
+
+<template x-for="(choice, index) in choices" :key="index">
+
+<button
+class="p-3 rounded-lg border shadow hover:scale-105 transition"
+
+:class="{
+'bg-green-500 text-white':selectedAnswer && choice.isCorrect,
+'bg-red-500 text-white':selectedAnswer && !choice.isCorrect && selectedAnswer===choice.english
+}"
+
+@click="selectAnswer(choice)"
+:disabled="!!selectedAnswer"
+x-text="choice.english">
+
+</button>
+
+</template>
+
+</div>
+
+
+<div class="text-center mt-6">
+
+<p class="text-green-600 font-bold text-lg"
+x-show="rightText"
+x-text="rightText"></p>
+
+<p class="text-red-600 font-bold text-lg"
+x-show="wrongText"
+x-text="wrongText"></p>
+
+</div>
+
+
+<div class="mt-6">
+
+<div class="w-full bg-gray-200 h-3 rounded-full">
+
+<div class="bg-irish-green h-3 rounded-full transition-all"
+:style="'width:'+progress()+'%'"></div>
+
+</div>
+
+<p class="text-center text-gray-600 mt-2">
+Score: <span x-text="score"></span>
+</p>
+
+</div>
+
+</div>
+
+</template>
+
+
+
+<template x-if="!currentQuestion">
+
+<div class="text-center mt-16">
+
+<h3 class="text-3xl font-bold">
+Quiz Completed 🎉
+</h3>
+
+<p class="text-xl mt-3">
+Score: <span x-text="score"></span> / <span x-text="totalQuestions"></span>
+</p>
+
+<button
+class="mt-6 px-6 py-3 bg-irish-dark text-white rounded-xl hover:bg-irish-green transition shadow"
+
+@click="resetQuiz()">
+
+Restart Quiz
+
+</button>
+
+</div>
+
+</template>
+
+</section>
+
+</main>
+
+
+<!-- FOOTER -->
+<footer class="bg-irish-dark text-white mt-20 py-8 text-center">
+
+<p class="text-lg">© 2026 Irish Proverbs</p>
+
+<p class="text-sm opacity-80 mt-2">
+Made by <span class="font-semibold text-irish-gold">Malachi Asgharian</span>
+</p>
+
+</footer>
+
+
+
+<script>
+function irishApp(){
+
+return{
+
+currentPage:'home',
+
+selectedMood:'',
+
+proverbs:[],
+
+questions:[],
+
+choices:[],
+
+favorites:[],
+
+score:0,
+
+selectedAnswer:'',
+
+rightText:'',
+
+wrongText:'',
+
+totalQuestions:0,
+
+moods:[
+'wise','thoughtful','cautionary','serious','instructional',
+'motivational','hopeful','happy','neutral','humorous','warning'
+],
+
+
+init(){
+
+fetch('proverbs.json')
+.then(r=>r.json())
+.then(data=>{
+
+this.proverbs=data
+this.resetQuiz()
+
+})
+
+},
+
+
+filteredProverbs(){
+
+return this.proverbs.filter(p=>
+!this.selectedMood || p.mood===this.selectedMood)
+
+},
+
+
+get currentQuestion(){
+
+return this.questions.length?this.questions[0]:null
+
+},
+
+
+progress(){
+if(!this.totalQuestions) return 0
+return (this.score/this.totalQuestions)*100
+},
+
+
+showPage(page){
+
+this.currentPage = page
+
+if(page === 'learn'){
+
+if(this.questions.length === 0){
+this.resetQuiz()
+}
+
+this.generateChoices()   // <-- ADD THIS
+
+}
+
+},
+
+generateChoices(){
+
+if(!this.currentQuestion) return
+
+const correct={
+...this.currentQuestion,
+isCorrect:true
+}
+
+const incorrect=this.proverbs
+.filter(p=>p.english!==this.currentQuestion.english)
+.sort(()=>0.5-Math.random())
+.slice(0,3)
+.map(p=>({...p,isCorrect:false}))
+
+this.choices=[correct,...incorrect]
+.sort(()=>0.5-Math.random())
+
+},
+
+
+selectAnswer(choice){
+
+this.selectedAnswer=choice.english
+
+if(choice.isCorrect){
+
+this.rightText="Correct!"
+this.score++
+
+}
+
+else{
+
+this.wrongText="Incorrect!"
+
+}
+
+setTimeout(()=>this.nextQuestion(),900)
+
+},
+
+
+nextQuestion(){
+
+this.questions.shift()
+
+this.selectedAnswer=''
+this.rightText=''
+this.wrongText=''
+
+this.generateChoices()
+
+},
+
+
+resetQuiz(){
+
+this.questions=[...this.proverbs]
+.sort(()=>0.5-Math.random())
+
+this.totalQuestions=this.questions.length
+
+this.score=0
+
+this.generateChoices()
+
+},
+
+
+toggleFavorite(p){
+
+const exists=this.favorites.find(f=>f.english===p.english)
+
+if(exists){
+
+this.favorites=this.favorites.filter(f=>f.english!==p.english)
+
+}
+
+else{
+
+this.favorites.push(p)
+
+}
+
+},
+
+
+isFavorite(p){
+
+return this.favorites.some(f=>f.english===p.english)
+
+}
+
+}
+
+}
+</script>
+
+
+<script>
+tailwind.config={
+theme:{
+extend:{
+fontFamily:{
+roboto:['Roboto','sans-serif'],
+'irish-grover':['Irish Grover','cursive']
+},
+colors:{
+'irish-dark':'#013220',
+'irish-green':'#2a7f62',
+'irish-gold':'#f7c948',
+'irish-cream':'#fefcf7'
+}
+}
+}
+}
+</script>
+
+</body>
+</html>
